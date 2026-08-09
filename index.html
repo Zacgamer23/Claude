@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generador de perfiles — varias cuentas, una misma persona</title>
+<meta name="description" content="Genera datos de perfil honestos para varias cuentas personales de Instagram que pertenecen a la misma persona.">
+</head>
+<body>
+<style>
+/* ---------- tokens: light is the base, both themes defined at token level ---------- */
+:root{
+  --ground:#edefec;
+  --surface:#ffffff;
+  --surface-2:#f5f7f4;
+  --ink:#141a18;
+  --muted:#5c6663;
+  --faint:#8d9793;
+  --line:#d8ddd8;
+  --line-soft:#e6eae5;
+  --accent:#0e6a5e;
+  --accent-soft:#dcece8;
+  --accent-ink:#0a4d44;
+  --warm:#b8642a;
+  --warm-soft:#f4e6da;
+  --focus-ring:#0e6a5e;
+  --on-accent:#ffffff;
+  --shadow:0 1px 2px rgba(20,26,24,.05), 0 8px 24px -12px rgba(20,26,24,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0f1614;
+    --surface:#18211e;
+    --surface-2:#131b19;
+    --ink:#e6eae7;
+    --muted:#96a19d;
+    --faint:#717d79;
+    --line:#2a3532;
+    --line-soft:#212b28;
+    --accent:#4fbfa8;
+    --accent-soft:#173029;
+    --accent-ink:#8fd9c8;
+    --warm:#e0955a;
+    --warm-soft:#2e2318;
+    --focus-ring:#4fbfa8;
+    --on-accent:#08211c;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0f1614;
+  --surface:#18211e;
+  --surface-2:#131b19;
+  --ink:#e6eae7;
+  --muted:#96a19d;
+  --faint:#717d79;
+  --line:#2a3532;
+  --line-soft:#212b28;
+  --accent:#4fbfa8;
+  --accent-soft:#173029;
+  --accent-ink:#8fd9c8;
+  --warm:#e0955a;
+  --warm-soft:#2e2318;
+  --focus-ring:#4fbfa8;
+  --on-accent:#08211c;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:ui-serif,Georgia,"Iowan Old Style","Palatino Linotype",serif;font-weight:600;text-wrap:balance;margin:0}
+code,kbd,.mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+a{color:var(--accent-ink)}
+:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;border-radius:3px}
+
+/* ---------- shell ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 72px}
+
+.masthead{
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 28px;
+  padding:36px 0 22px;border-bottom:1px solid var(--line);margin-bottom:28px;
+}
+.masthead h1{font-size:clamp(24px,3.4vw,34px);letter-spacing:-.015em;line-height:1.15}
+.masthead p{margin:6px 0 0;color:var(--muted);max-width:62ch;font-size:14px}
+.eyebrow{
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);
+  font-weight:600;margin:0 0 6px;
+}
+.mast-side{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* ---------- layout ---------- */
+.cols{display:grid;grid-template-columns:335px minmax(0,1fr);gap:32px;align-items:start}
+@media (max-width:940px){.cols{grid-template-columns:minmax(0,1fr);gap:24px}}
+/* grid and flex items default to min-width:auto, so intrinsic input widths
+   would otherwise force the track wider than the phone viewport */
+.cols > *{min-width:0}
+
+.panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:20px;box-shadow:var(--shadow);min-width:0;max-width:100%;
+}
+@media (min-width:941px){.panel.sticky{position:sticky;top:20px;max-height:calc(100vh - 40px);overflow-y:auto}}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;min-width:0}
+.field:last-of-type{margin-bottom:0}
+label{font-size:12px;font-weight:600;letter-spacing:.03em;color:var(--muted)}
+.hint{font-size:11.5px;color:var(--faint);line-height:1.45}
+input[type=text],input[type=number],select,textarea{
+  font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--line);border-radius:7px;padding:9px 10px;width:100%;min-width:0;
+}
+input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--accent)}
+input[type=text]::placeholder{color:var(--faint)}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.row2 > *{min-width:0}
+
+.checks{display:flex;flex-direction:column;gap:9px;border:1px solid var(--line-soft);border-radius:8px;padding:11px;max-height:210px;overflow-y:auto;background:var(--surface-2)}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;line-height:1.35;cursor:pointer}
+.check input{margin:2px 0 0;accent-color:var(--accent);flex:none}
+.toggle-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+.toggle{display:flex;gap:7px;align-items:center;font-size:13px;cursor:pointer}
+.toggle input{accent-color:var(--accent)}
+
+.btn{
+  font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  border-radius:7px;padding:10px 15px;border:1px solid transparent;
+  transition:background .12s ease,border-color .12s ease,color .12s ease;
+}
+.btn-primary{background:var(--accent);color:var(--on-accent);width:100%}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.btn-ghost:hover{background:var(--surface-2);border-color:var(--accent)}
+.btn-sm{padding:7px 11px;font-size:12.5px;font-weight:600}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+.err{color:var(--warm);font-size:12.5px;margin-top:8px;display:none}
+.err.on{display:block}
+
+/* ---------- results ---------- */
+.results-head{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;margin-bottom:16px}
+.results-head h2{font-size:20px}
+.count{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.export-row{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+.empty{
+  border:1px dashed var(--line);border-radius:10px;padding:44px 24px;text-align:center;
+  color:var(--muted);background:var(--surface-2);
+}
+.empty strong{display:block;color:var(--ink);font-family:ui-serif,Georgia,serif;font-size:17px;margin-bottom:6px;font-weight:600}
+
+.cards{display:flex;flex-direction:column;gap:14px}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:18px 20px 20px;box-shadow:var(--shadow);
+}
+.card-top{display:flex;gap:14px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--line-soft)}
+.num{
+  font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;
+  color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;
+  padding:4px 7px;flex:none;letter-spacing:.05em;margin-top:2px;
+}
+.id{min-width:0;flex:1}
+.card,.notes,.tbl-scroll,.empty{min-width:0;max-width:100%}
+.handle{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:16px;font-weight:600;letter-spacing:-.01em;word-break:break-all}
+.dname{font-family:ui-serif,Georgia,serif;font-size:14.5px;color:var(--muted);margin-top:1px}
+.copy-h{flex:none}
+
+.bio{
+  font-size:14.5px;margin:13px 0 0;padding:11px 13px;background:var(--surface-2);
+  border-left:2px solid var(--accent);border-radius:0 7px 7px 0;
+}
+.bio-meta{font-size:11px;color:var(--faint);margin-top:5px;font-variant-numeric:tabular-nums}
+.sect{margin-top:15px}
+.sect h4{
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--faint);
+  margin:0 0 6px;font-weight:700;font-family:inherit;
+}
+.focus{margin:0;font-size:13.8px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  font-family:ui-monospace,Menlo,monospace;font-size:12px;
+  background:var(--surface-2);border:1px solid var(--line-soft);border-radius:20px;
+  padding:4px 10px;color:var(--ink);
+}
+.tag{
+  display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;
+  color:var(--warm);background:var(--warm-soft);border-radius:5px;padding:3px 8px;
+}
+
+/* ---------- table + notes ---------- */
+.block{margin-top:38px}
+.block > h2{font-size:20px;margin-bottom:4px}
+.block > p.lede{color:var(--muted);font-size:13.5px;margin:0 0 14px;max-width:70ch}
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.3px}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.11em;color:var(--faint);
+  background:var(--surface-2);font-weight:700;white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.h{font-family:ui-monospace,Menlo,monospace;white-space:nowrap;font-weight:600}
+
+.notes{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:8px 22px 20px;box-shadow:var(--shadow);
+}
+.notes h3{font-size:15px;margin:18px 0 5px}
+.notes p{margin:0;color:var(--muted);font-size:13.8px;max-width:72ch}
+.notes .rule{height:1px;background:var(--line-soft);margin:16px 0 0}
+.notes .rule:first-of-type{display:none}
+
+.foot{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);color:var(--faint);font-size:12.5px;max-width:76ch}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
+  background:var(--ink);color:var(--ground);padding:9px 17px;border-radius:7px;
+  font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:50;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- small screens ---------- */
+@media (max-width:640px){
+  .wrap{padding:0 14px 56px}
+  .masthead{padding:22px 0 16px;margin-bottom:20px;align-items:flex-start}
+  .mast-side{margin-left:0}
+  /* iOS zooms the viewport on focus when inputs are under 16px */
+  input[type=text],input[type=number],select{font-size:16px;padding:11px 11px}
+  .panel{padding:16px}
+  .card{padding:16px 15px 18px}
+  .card-top{gap:10px}
+  .handle{font-size:15px}
+  .checks{max-height:none}
+  .btn{padding:12px 15px}
+  .btn-sm{padding:9px 12px}
+  .export-row{margin-left:0;width:100%}
+  .export-row .btn{flex:1 1 auto}
+  .results-head{gap:8px}
+  .notes{padding:6px 16px 16px}
+}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">Una persona · varias cuentas · sin humo</p>
+      <h1>Generador de perfiles personales</h1>
+      <p>Redacta usernames, nombres y bios para varias cuentas de Instagram que pertenecen a <em>la misma</em> persona real, cada una con su propio tema. Genera solo texto: tú decides qué usar y lo aplicas a mano.</p>
+    </div>
+    <div class="mast-side">
+      <button class="btn btn-ghost btn-sm" id="theme" type="button" aria-label="Cambiar tema">Tema</button>
+    </div>
+  </header>
+
+  <div class="cols">
+
+    <!-- ---------------- controls ---------------- -->
+    <form class="panel sticky" id="form" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="name">Nombre base <span aria-hidden="true">*</span></label>
+        <input type="text" id="name" placeholder="p. ej. David Aguallo" required>
+        <span class="hint">Tu nombre real. De aquí salen los usernames y los nombres visibles.</span>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="count">Nº de cuentas</label>
+          <input type="number" id="count" value="4" min="1" max="12">
+        </div>
+        <div class="field">
+          <label for="lang">Idioma de bios</label>
+          <select id="lang">
+            <option value="es" selected>Español</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="city">Ciudad <span class="hint" style="font-weight:400">(opcional)</span></label>
+          <input type="text" id="city" placeholder="Valencia">
+        </div>
+        <div class="field">
+          <label for="tone">Tono</label>
+          <select id="tone">
+            <option value="minimo">Mínimo</option>
+            <option value="calido" selected>Cálido</option>
+            <option value="seco">Seco</option>
+            <option value="jugueton">Juguetón</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Temas de las cuentas <span class="hint" style="font-weight:400">(opcional — si no eliges, reparto yo)</span></label>
+        <div class="checks" id="niches"></div>
+      </div>
+
+      <div class="field">
+        <label>Opciones</label>
+        <div class="toggle-row">
+          <label class="toggle"><input type="checkbox" id="emoji"> Emojis en la bio</label>
+          <label class="toggle"><input type="checkbox" id="linked" checked> Cuentas enlazadas entre sí</label>
+        </div>
+        <span class="hint">«Enlazadas» añade a cada bio secundaria una referencia a tu cuenta principal, para que quede claro que eres la misma persona.</span>
+      </div>
+
+      <button class="btn btn-primary" type="submit" style="margin-top:18px">Generar perfiles</button>
+      <p class="err" id="err">Escribe un nombre base para empezar.</p>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" type="button" id="btn-reshuffle">Otra variante</button>
+        <button class="btn btn-ghost btn-sm" type="button" id="btn-reset">Limpiar</button>
+      </div>
+    </form>
+
+    <!-- ---------------- results ---------------- -->
+    <main>
+      <div class="results-head">
+        <h2>Perfiles</h2>
+        <span class="count" id="count-label"></span>
+        <div class="export-row" id="exports" hidden>
+          <button class="btn btn-ghost btn-sm" type="button" id="cp-md">Copiar Markdown</button>
+          <button class="btn btn-ghost btn-sm" type="button" id="dl-md">Descargar .md</button>
+          <button class="btn btn-ghost btn-sm" type="button" id="cp-json">Copiar JSON</button>
+        </div>
+      </div>
+
+      <div id="out">
+        <div class="empty">
+          <strong>Aún no hay nada generado</strong>
+          Rellena tu nombre base a la izquierda y pulsa <em>Generar perfiles</em>.
+        </div>
+      </div>
+
+      <section class="block" id="tbl-block" hidden>
+        <h2>Tabla resumen</h2>
+        <p class="lede">Las mismas cuentas en una vista compacta, para revisarlas de un vistazo antes de decidir cuáles te quedas.</p>
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>Username</th><th>Nombre visible</th><th>Bio</th><th>Enfoque</th></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="block">
+        <h2>Llevar varias cuentas personales sin que se te vaya de las manos</h2>
+        <p class="lede">Notas sobre gestión manual. Nada de esto necesita herramientas externas.</p>
+        <div class="notes" id="notes"></div>
+      </section>
+
+      <p class="foot">
+        Esta página genera <strong>solo texto</strong>: no se conecta con Instagram, no crea cuentas, no sigue a nadie y no automatiza nada. Las cuentas sugeridas para seguir son perfiles públicos y conocidos, pero los usernames cambian con el tiempo — compruébalos antes de seguirlos.
+      </p>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* ============================ data ============================ */
+
+const NICHES = {
+  general: {
+    label:"Personal / principal", emoji:"🙂", tokens:["","real","aqui","daily"],
+    frag:{
+      es:["lo que me da la gana","fotos sin criterio","cuaderno abierto","la vida a ratos","aquí lo normal","sin tema fijo"],
+      en:["whatever I feel like","photos with no filter policy","open notebook","life in fragments","nothing curated","no fixed theme"]
+    },
+    focus:{
+      es:"La cuenta madre: gente, comidas, viajes cortos y lo que pase. Es la que enseñas cuando alguien te pregunta cuál es tu Instagram.",
+      en:"The home base: people, meals, short trips, whatever happens. This is the one you give out when someone asks for your Instagram."
+    },
+    follows:["@natgeo","@nasa","@humansofny","@nytimes","@bbc","@thedodo","@spotify","@ted"]
+  },
+  photography: {
+    label:"Fotografía (analógica / calle)", emoji:"📷", tokens:["shoots","onfilm","frames","35mm","carrete"],
+    frag:{
+      es:["35mm y paciencia","reveladas en casa","luz de las siete de la tarde","un carrete al mes","casi todo en blanco y negro","calle, sobre todo"],
+      en:["35mm and patience","developed at home","seven o'clock light","one roll a month","mostly black and white","street, mainly"]
+    },
+    focus:{
+      es:"Solo fotografía, y sin explicaciones largas debajo. Publica poco y por tandas, cuando termina un carrete.",
+      en:"Photography only, with no long captions underneath. Posts rarely and in batches, whenever a roll finishes."
+    },
+    follows:["@natgeo","@magnumphotos","@leica_camera","@ilfordphoto","@kodak","@lensculture","@sonyalpha","@thephotosociety","@canonusa","@nikonusa"]
+  },
+  running: {
+    label:"Correr / resistencia", emoji:"🏃", tokens:["runs","kms","corre","onfoot","millas"],
+    frag:{
+      es:["kilómetros lentos, casi siempre","entreno para el próximo dorsal","salgo antes de que amanezca","asfalto y algo de monte","cinco días por semana","el ritmo ya llegará"],
+      en:["slow miles, mostly","training for the next bib","out before sunrise","road with a bit of trail","five days a week","the pace will come"]
+    },
+    focus:{
+      es:"Un diario de entrenamiento en público: rutas, sensaciones y alguna carrera. Sirve de recordatorio para no saltarse los días malos.",
+      en:"A training log kept in public: routes, how it felt, the occasional race. It exists to make the bad days harder to skip."
+    },
+    follows:["@nikerunning","@runnersworldmag","@strava","@adidasrunning","@asics","@brooksrunning","@onrunning","@eliudkipchoge","@hoka","@garmin"]
+  },
+  cooking: {
+    label:"Cocina de casa", emoji:"🍳", tokens:["cocina","cooks","kitchen","fuego","recetas"],
+    frag:{
+      es:["cocino casi todos los días","recetas cortas, ingredientes normales","pan los domingos","lo que sale, sale","sin fotos bonitas","la cena de anoche"],
+      en:["I cook most days","short recipes, normal ingredients","bread on Sundays","it turns out or it doesn't","no pretty plating","last night's dinner"]
+    },
+    focus:{
+      es:"Cocina real de diario, con platos que se repiten y errores incluidos. Nada de producción: se fotografía y se cena.",
+      en:"Everyday home cooking, repeat dishes and failures included. No production: photo taken, then dinner."
+    },
+    follows:["@bonappetitmag","@nytcooking","@seriouseats","@jamieoliver","@ottolenghi","@massimobottura","@smittenkitchen","@kingarthurbaking","@davidchang"]
+  },
+  travel: {
+    label:"Viajes", emoji:"🧭", tokens:["viaja","travels","mapa","goes","rutas"],
+    frag:{
+      es:["mapas doblados y billetes sueltos","viajo despacio","sitios pequeños, casi siempre","cuadernos y trenes","sin itinerario cerrado","vuelvo a los mismos sitios"],
+      en:["folded maps and loose tickets","I travel slowly","small places, usually","notebooks and trains","no fixed itinerary","I go back to the same places"]
+    },
+    focus:{
+      es:"Viajes contados sin prisa, con más detalle del sitio que de uno mismo. Se actualiza a rachas, cuando hay algo que contar.",
+      en:"Trips told slowly, with more attention on the place than on yourself. Updates in bursts, when there's something worth saying."
+    },
+    follows:["@natgeotravel","@lonelyplanet","@beautifuldestinations","@cntraveler","@afarmedia","@travelandleisure","@nationalparkservice","@airbnb"]
+  },
+  music: {
+    label:"Música y vinilos", emoji:"🎧", tokens:["escucha","listens","vinilo","spins","discos"],
+    frag:{
+      es:["lo que suena esta semana","vinilos de segunda mano","conciertos pequeños","recomendaciones sin pedir","discos enteros, no canciones","tocadiscos y poco más"],
+      en:["what's playing this week","second-hand vinyl","small venues","unsolicited recommendations","full albums, not singles","a turntable and not much else"]
+    },
+    focus:{
+      es:"Una estantería de discos en versión pública: hallazgos, entradas de conciertos y notas cortas. Sin pretensión de crítica.",
+      en:"A record shelf in public form: finds, gig tickets, short notes. Makes no claim to be criticism."
+    },
+    follows:["@spotify","@pitchfork","@rollingstone","@nprmusic","@bandcamp","@discogs","@vinylmeplease","@boilerroomtv","@thirdmanrecords"]
+  },
+  design: {
+    label:"Diseño / trabajo creativo", emoji:"✏️", tokens:["design","estudio","works","taller","draws"],
+    frag:{
+      es:["bocetos antes que resultados","tipografía y márgenes","trabajo en curso","cosas a medio terminar","carpeta de referencias","el proceso, no el porfolio"],
+      en:["sketches before results","type and margins","work in progress","half-finished things","a folder of references","the process, not the portfolio"]
+    },
+    focus:{
+      es:"El taller abierto: pruebas, descartes y referencias que guardas. Más útil para ti que para un cliente.",
+      en:"The workshop with the door open: tests, rejects, references worth keeping. More useful to you than to a client."
+    },
+    follows:["@behance","@dribbble","@itsnicethat","@designmilk","@adobe","@pentagramdesign","@figma","@designboom"]
+  },
+  tech: {
+    label:"Tecnología / cacharreo", emoji:"⌨️", tokens:["builds","codigo","dev","cacharrea","makes"],
+    frag:{
+      es:["proyectos que igual no acabo","cacharreo de fin de semana","cables por todas partes","aprendo en público","cosas pequeñas que funcionan","documentando sobre la marcha"],
+      en:["projects I may never finish","weekend tinkering","cables everywhere","learning in public","small things that work","documenting as I go"]
+    },
+    focus:{
+      es:"Proyectos personales enseñados a medio hacer: montajes, pantallas y algún fracaso. El registro importa más que el acabado.",
+      en:"Personal projects shown half-built: rigs, screens, the occasional failure. The record matters more than the finish."
+    },
+    follows:["@github","@figma","@vercel","@wired","@theverge","@techcrunch","@arduino","@raspberrypifoundation"]
+  },
+  coffee: {
+    label:"Café", emoji:"☕", tokens:["cafe","brews","coffee","tuesta","cups"],
+    frag:{
+      es:["filtrado, casi siempre","tuestes de la semana","molinillo y balanza","cafeterías del barrio","una taza y a empezar","apuntes de cata sin rigor"],
+      en:["filter, mostly","this week's roast","grinder and scale","neighbourhood cafés","one cup, then start","tasting notes, loosely"]
+    },
+    focus:{
+      es:"Café como afición pequeña y constante: recetas, tuestes y sitios donde repites. Tono tranquilo, nada de gurú.",
+      en:"Coffee as a small, steady hobby: recipes, roasts, places worth returning to. Calm tone, no guru energy."
+    },
+    follows:["@sprudge","@baristamagazine","@bluebottle","@stumptowncoffee","@counterculturecoffee","@jameshoffmann","@lamarzoccohome","@onyxcoffeelab"]
+  },
+  cycling: {
+    label:"Ciclismo", emoji:"🚲", tokens:["pedalea","rides","bici","onbike","rueda"],
+    frag:{
+      es:["salidas largas los sábados","subo despacio, bajo peor","la bici siempre sucia","rutas de casa al puerto","café a mitad de ruta","mucho llano y algún puerto"],
+      en:["long rides on Saturdays","slow up, worse down","the bike is never clean","routes from home to the climb","coffee at the halfway point","flat roads and the odd climb"]
+    },
+    focus:{
+      es:"Rutas, perfiles y averías de carretera. Se publica después de salir, nunca antes.",
+      en:"Routes, elevation profiles and roadside repairs. Posted after the ride, never before."
+    },
+    follows:["@rapha","@trekbikes","@iamspecialized","@gcntv","@rouleurmagazine","@castellicycling","@letourdefrance","@canyon"]
+  },
+  books: {
+    label:"Libros y lectura", emoji:"📚", tokens:["lee","reads","libros","pages","subraya"],
+    frag:{
+      es:["lo que estoy leyendo","subrayados y poco más","novela y ensayo, a partes","pila de pendientes creciendo","bibliotecas antes que librerías","un libro por foto"],
+      en:["whatever I'm reading","underlinings, not reviews","fiction and essays, in turns","the to-read pile keeps growing","libraries before bookshops","one book per photo"]
+    },
+    focus:{
+      es:"Un registro de lecturas con citas cortas y portadas. Sin puntuaciones ni reseñas largas.",
+      en:"A reading log of short quotes and covers. No ratings, no long reviews."
+    },
+    follows:["@nytbooks","@penguinrandomhouse","@goodreads","@parisreview","@lithub","@strandbookstore","@libraryofcongress","@penguinukbooks"]
+  },
+  art: {
+    label:"Arte y museos", emoji:"🖼️", tokens:["mira","looks","museos","sees","salas"],
+    frag:{
+      es:["salas vacías entre semana","detalles, no cuadros enteros","entradas guardadas","voy solo y sin prisa","exposiciones que repito","fotos torcidas de museo"],
+      en:["empty galleries on weekdays","details, not whole paintings","ticket stubs kept","I go alone and slowly","shows I visit twice","crooked museum photos"]
+    },
+    focus:{
+      es:"Visitas a exposiciones contadas por detalles pequeños. Más apuntes personales que divulgación.",
+      en:"Exhibition visits told through small details. Closer to personal notes than to commentary."
+    },
+    follows:["@moma","@tate","@metmuseum","@guggenheim","@thebroad","@artsy","@museodelprado","@centrepompidou"]
+  },
+  film: {
+    label:"Cine", emoji:"🎬", tokens:["ve","watches","cine","screens","butaca"],
+    frag:{
+      es:["salas antes que sofá","sesiones de tarde","apuntes de una línea","reposiciones y clásicos","entradas en la cartera","veo más de lo que comento"],
+      en:["cinema before sofa","afternoon screenings","one-line notes","revivals and classics","tickets in my wallet","I watch more than I post"]
+    },
+    focus:{
+      es:"Diario de películas con comentarios brevísimos. Se alimenta de entradas de cine y fotogramas.",
+      en:"A film diary with very short comments. Fed by ticket stubs and stills."
+    },
+    follows:["@a24","@criterioncollection","@letterboxd","@mubi","@sundanceorg","@tiff_net","@bfi","@festivaldecannes"]
+  },
+  outdoors: {
+    label:"Montaña / naturaleza", emoji:"⛰️", tokens:["monte","hikes","sendero","outside","cumbres"],
+    frag:{
+      es:["fines de semana fuera","botas y mapa de papel","cumbres modestas","sin cobertura, mejor","duermo fuera cuando puedo","el mismo valle una y otra vez"],
+      en:["weekends outside","boots and a paper map","modest summits","no signal, even better","I sleep outside when I can","the same valley, again"]
+    },
+    focus:{
+      es:"Salidas al monte contadas sin épica: rutas conocidas, mal tiempo y termos. Actualiza los lunes.",
+      en:"Time outdoors told without heroics: familiar routes, bad weather, thermos flasks. Updates on Mondays."
+    },
+    follows:["@rei","@patagonia","@thenorthface","@outsidemagazine","@nationalparkservice","@alexhonnold","@arcteryx","@merrell"]
+  },
+  plants: {
+    label:"Plantas y huerto", emoji:"🌿", tokens:["planta","grows","huerto","riega","macetas"],
+    frag:{
+      es:["balcón lleno hasta arriba","esquejes que a veces salen","tomates con más fe que técnica","riego los martes","tierra bajo las uñas","aprendo matando plantas"],
+      en:["a balcony packed full","cuttings that sometimes take","tomatoes on faith more than skill","watering on Tuesdays","soil under my nails","learning by killing plants"]
+    },
+    focus:{
+      es:"Un huerto de balcón documentado mes a mes, con bajas incluidas. Práctico, nada aspiracional.",
+      en:"A balcony garden documented month by month, casualties included. Practical, not aspirational."
+    },
+    follows:["@kewgardens","@thesill","@gardenista","@nybg","@houseplantjournal","@patchplants","@rhshampton","@monrovia"]
+  },
+  fitness: {
+    label:"Gimnasio / fuerza", emoji:"🏋️", tokens:["entrena","lifts","fuerza","trains","barra"],
+    frag:{
+      es:["barra, discos y poco más","progresión lenta","cuatro días por semana","sin dietas milagro","el mismo programa desde hace meses","aburrido a propósito"],
+      en:["barbell, plates, not much else","slow progression","four days a week","no miracle diets","same programme for months","boring on purpose"]
+    },
+    focus:{
+      es:"Registro de entrenamientos de fuerza: series, marcas y estancamientos. Honesto con lo que no avanza.",
+      en:"A strength training log: sets, PRs and plateaus. Honest about what isn't moving."
+    },
+    follows:["@nike","@lululemon","@gymshark","@crossfit","@menshealthmag","@womenshealthmag","@therock","@strava"]
+  },
+  business: {
+    label:"Proyecto propio / negocio", emoji:"📦", tokens:["studio","proyecto","shop","taller","co"],
+    frag:{
+      es:["proyecto pequeño, hecho a mano","pedidos por mensaje","lo hago yo, de principio a fin","envíos los jueves","poca cantidad, sin prisa","el taller por dentro"],
+      en:["a small project, made by hand","orders by message","I make it start to finish","shipping on Thursdays","small batches, no rush","the workshop from inside"]
+    },
+    focus:{
+      es:"La cara pública de un proyecto propio: producto, taller y pedidos. Es la única cuenta que vende algo, y lo dice claro.",
+      en:"The public face of a small venture: product, workshop, orders. The only account that sells anything, and it says so plainly."
+    },
+    follows:["@shopify","@etsy","@squarespace","@forbes","@incmagazine","@entrepreneur","@canva","@mailchimp"]
+  },
+  cars: {
+    label:"Coches / motor", emoji:"🏎️", tokens:["motor","drives","garaje","coches","rpm"],
+    frag:{
+      es:["garaje más que carretera","clásicos con óxido","llaves y grasa","el mismo coche desde 2016","arreglos de domingo","circuitos por televisión"],
+      en:["garage more than road","classics with rust","spanners and grease","same car since 2016","Sunday repairs","circuits watched on TV"]
+    },
+    focus:{
+      es:"Mecánica de garaje y coches que interesan por viejos, no por rápidos. Fotos sucias, a propósito.",
+      en:"Garage mechanics and cars that matter for being old, not fast. Dirty photos, deliberately."
+    },
+    follows:["@petrolicious","@topgear","@porsche","@donutmedia","@motortrend","@formula1","@hagerty","@goodwoodrrc"]
+  },
+  skate: {
+    label:"Skate", emoji:"🛹", tokens:["skates","tabla","rolls","patina","spots"],
+    frag:{
+      es:["spots del barrio","clips malos, buenos días","la misma tabla hasta que parta","aprendiendo tarde","caídas incluidas","de noche, en el parking"],
+      en:["neighbourhood spots","bad clips, good days","same deck until it snaps","learning late","falls included","night sessions in the car park"]
+    },
+    focus:{
+      es:"Clips cortos y spots repetidos, sin producción. Se publica lo que salga, aunque no salga.",
+      en:"Short clips and repeat spots, no production. Whatever lands gets posted — and sometimes what doesn't."
+    },
+    follows:["@thrashermag","@vans","@tonyhawk","@nikesb","@transworldskate","@element","@santacruzskateboards","@thebriefingskate"]
+  },
+  gaming: {
+    label:"Videojuegos", emoji:"🎮", tokens:["juega","plays","gg","partidas","mando"],
+    frag:{
+      es:["partidas largas, pocas noches","backlog imposible","capturas en vez de reseñas","juegos viejos sobre todo","cooperativo con los de siempre","sin directos, solo fotos"],
+      en:["long sessions, few nights","an impossible backlog","screenshots instead of reviews","mostly old games","co-op with the usual crew","no streams, just stills"]
+    },
+    focus:{
+      es:"Capturas y partidas comentadas en corto. No es una cuenta de creador: es un álbum.",
+      en:"Screenshots and short notes on what you're playing. Not a creator account — an album."
+    },
+    follows:["@ign","@playstation","@xbox","@nintendo","@twitch","@gamespot","@rockstargames","@bethesda"]
+  }
+};
+
+const ASIDES = {
+  seco:      {es:["Sin más.","Ya está.","No hay estrategia."],                 en:["That's it.","Nothing more.","No strategy here."]},
+  calido:    {es:["Gracias por pasarte.","Me alegra que estés por aquí.","Bienvenido."], en:["Thanks for stopping by.","Glad you're here.","Welcome in."]},
+  jugueton:  {es:["Aviso: mucho scroll.","Sí, otra cuenta mía.","Perdón por adelantado."], en:["Warning: heavy scrolling.","Yes, another one of mine.","Sorry in advance."]},
+  minimo:    {es:[], en:[]}
+};
+
+const JOINER = {seco:". ", calido:". ", minimo:" · ", jugueton:" · "};
+
+const NOTES = [
+  {h:{es:"Cámbiate de cuenta desde la propia app",en:"Switch accounts inside the app"},
+   p:{es:"Instagram permite tener varias cuentas añadidas a la vez y saltar entre ellas manteniendo la sesión iniciada. Con eso basta: no hace falta ninguna herramienta externa, ni gestores, ni nada que pida tu contraseña.",
+      en:"Instagram lets you add several accounts at once and switch between them while staying logged in. That's enough: no external tools, no managers, nothing that asks for your password."}},
+  {h:{es:"Que cada cuenta tenga una razón de existir",en:"Give each account a reason to exist"},
+   p:{es:"Si dos cuentas acaban publicando lo mismo, sobra una. La prueba rápida: si no sabrías decir en una frase por qué una foto va a la cuenta A y no a la B, todavía no tienes dos cuentas — tienes una partida en dos.",
+      en:"If two accounts end up posting the same thing, one of them is redundant. Quick test: if you can't say in one sentence why a photo goes to account A instead of B, you don't have two accounts yet — you have one, split."}},
+  {h:{es:"Ritmos distintos, y ninguno obligatorio",en:"Different rhythms, none of them mandatory"},
+   p:{es:"Una cuenta de carretes puede publicar una vez al mes y estar perfectamente viva. Forzar un calendario en cinco perfiles a la vez es la forma más rápida de abandonarlos todos. Deja que cada una vaya al ritmo de la afición que documenta.",
+      en:"A film photography account can post once a month and be perfectly alive. Forcing a calendar onto five profiles at once is the fastest way to abandon all of them. Let each one move at the pace of the hobby it documents."}},
+  {h:{es:"Enlazarlas es una decisión, no una obligación",en:"Linking them is a choice, not a duty"},
+   p:{es:"Puedes cruzarlas en las bios («principal: @…») o dejarlas simplemente separadas. Ambas cosas son legítimas. Lo que no conviene es fingir que son personas distintas: eso deja de ser tener varias cuentas y pasa a ser otra cosa.",
+      en:"You can cross-reference them in the bios (\"main: @…\") or just keep them separate. Both are legitimate. What doesn't work is pretending they're different people — at that point it stops being multiple accounts and becomes something else."}},
+  {h:{es:"Privacidad por cuenta",en:"Privacy per account"},
+   p:{es:"Cada perfil lleva sus propios ajustes: una puede ser pública y otra privada para gente cercana. Es la ventaja real de separarlas, más que el alcance.",
+      en:"Each profile carries its own settings: one can be public and another private for close friends. That's the real advantage of splitting them — more than reach."}},
+  {h:{es:"Revisa los @ antes de seguir a nadie",en:"Check handles before you follow"},
+   p:{es:"Las sugerencias de esta página son cuentas públicas y conocidas, pero los usernames cambian de dueño y de nombre. Búscalas dentro de la app y confirma que son las correctas antes de darles a seguir.",
+      en:"The suggestions on this page are well-known public accounts, but usernames change hands and change names. Search for them inside the app and confirm before you follow."}}
+];
+
+/* ============================ helpers ============================ */
+
+function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function pick(r,arr){return arr[Math.floor(r()*arr.length)]}
+function sample(r,arr,n){const c=arr.slice();for(let i=c.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[c[i],c[j]]=[c[j],c[i]]}return c.slice(0,Math.min(n,c.length))}
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
+function slug(s){
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+          .toLowerCase().replace(/[^a-z0-9]/g,"");
+}
+
+function nameParts(full){
+  const bits=full.trim().split(/\s+/).filter(Boolean);
+  return {first:bits[0]||"", last:bits.length>1?bits[bits.length-1]:"", all:bits};
+}
+
+/* ---- username ---- */
+function makeHandle(r,np,niche,taken){
+  const f=slug(np.first), l=slug(np.last);
+  const tok=slug(pick(r,NICHES[niche].tokens));
+  const cands=[];
+  if(tok){
+    cands.push(`${f}.${tok}`, `${f}${tok}`, `${f}_${tok}`, `${tok}.${f}`);
+    if(l) cands.push(`${f}${l[0]}.${tok}`, `${f}.${l}.${tok}`.slice(0,20));
+  }
+  if(l) cands.push(`${f}.${l}`, `${f}${l}`, `${f}_${l}`, `${f}${l[0]}`);
+  cands.push(f, `${f}.aqui`, `${f}${Math.floor(r()*89)+10}`);
+
+  for(const c of cands.sort(()=>r()-.5)){
+    const h=c.replace(/^[._]+|[._]+$/g,"").slice(0,20);
+    if(h.length>=4 && !taken.has(h)){taken.add(h);return h}
+  }
+  let i=2, base=(f+tok).slice(0,16)||"cuenta";
+  while(taken.has(base+i)) i++;
+  taken.add(base+i); return base+i;
+}
+
+/* ---- display name ---- */
+function makeDisplay(r,np,niche,lang,isMain){
+  const full=np.all.join(" ");
+  const initial=np.last?`${np.first} ${np.last[0]}.`:np.first;
+  const label=NICHES[niche].label.split(/[/(]/)[0].trim();
+  const opts=isMain
+    ? [full, full, initial, full.toLowerCase()]
+    : [full, `${full} · ${label}`, `${np.first} — ${label}`, initial, `${full} | ${label}`];
+  return pick(r,opts);
+}
+
+/* ---- bio ---- */
+function makeBio(r,np,niche,{lang,city,tone,emoji,linked},mainHandle,isMain){
+  const n=NICHES[niche];
+  const frs=sample(r,n.frag[lang],2);
+  const parts=frs.slice();
+  if(city) parts.push(lang==="es"?`En ${city}`:`Based in ${city}`);
+  const asides=ASIDES[tone][lang];
+  if(asides.length && r()>.35) parts.push(pick(r,asides).replace(/\.$/,""));
+  if(linked && !isMain && mainHandle) parts.push(lang==="es"?`Principal: @${mainHandle}`:`Main: @${mainHandle}`);
+
+  const j=JOINER[tone];
+  const lead=emoji?n.emoji+" ":"";
+  // sentence tones read as prose, so each fragment gets a capital; " · " tones stay lowercase
+  const sentence=(tone==="seco"||tone==="calido");
+  const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+  let out="";
+  for(const p of parts){
+    const piece=sentence?cap(p):p;
+    const next=out?out+j+piece:lead+piece;
+    if(next.length>150) break;
+    out=next;
+  }
+  if(!out) out=(lead+(sentence?cap(frs[0]):frs[0])).slice(0,150);
+  if(sentence && !/[.!?]$/.test(out) && out.length<150) out+=".";
+  return out;
+}
+
+/* ---- focus ---- */
+function makeFocus(r,niche,{lang,tone,linked},isMain,mainHandle){
+  const base=NICHES[niche].focus[lang];
+  const toneLine={
+    seco:{es:"El tono es seco y directo, sin adornos.",en:"The tone is dry and direct, no decoration."},
+    calido:{es:"El tono es cercano, como hablar con un amigo.",en:"The tone is warm, like talking to a friend."},
+    minimo:{es:"El tono es mínimo: poco texto, mucha imagen.",en:"The tone is minimal: little text, mostly image."},
+    jugueton:{es:"El tono es desenfadado, con humor propio.",en:"The tone is playful, with its own sense of humour."}
+  }[tone][lang];
+  let third="";
+  if(!isMain && linked && mainHandle) third=lang==="es"?` Enlaza abiertamente con @${mainHandle}.`:` Openly links back to @${mainHandle}.`;
+  else if(isMain) third=lang==="es"?" Es el punto de partida del resto.":" It's the starting point for the others.";
+  return `${base} ${toneLine}${third}`;
+}
+
+/* ============================ generate ============================ */
+
+let CURRENT=null;
+
+function generate(cfg,seed){
+  const r=rng(seed);
+  const np=nameParts(cfg.name);
+  const keys=Object.keys(NICHES);
+
+  // niche assignment: chosen ones first, then filled from the rest
+  let chosen=cfg.niches.slice();
+  if(!chosen.length) chosen=["general"];
+  else if(!chosen.includes("general") && cfg.count>chosen.length) chosen.unshift("general");
+  const rest=sample(r,keys.filter(k=>!chosen.includes(k)),keys.length);
+  const assigned=[];
+  for(let i=0;i<cfg.count;i++) assigned.push(chosen[i] ?? rest[(i-chosen.length)%rest.length] ?? keys[i%keys.length]);
+
+  const taken=new Set();
+  const accounts=[];
+  let mainHandle=null;
+
+  assigned.forEach((niche,i)=>{
+    const isMain=i===0;
+    const handle=makeHandle(r,np,niche,taken);
+    if(isMain) mainHandle=handle;
+    accounts.push({
+      n:i+1, niche,
+      nicheLabel:NICHES[niche].label,
+      handle,
+      display:makeDisplay(r,np,niche,cfg.lang,isMain),
+      bio:makeBio(r,np,niche,cfg,mainHandle,isMain),
+      focus:makeFocus(r,niche,cfg,isMain,mainHandle),
+      follows:sample(r,NICHES[niche].follows,5+Math.floor(r()*4)),
+      isMain
+    });
+  });
+  return accounts;
+}
+
+/* ============================ render ============================ */
+
+function render(accounts,cfg){
+  const out=document.getElementById("out");
+  out.innerHTML=`<div class="cards">${accounts.map(a=>`
+    <article class="card">
+      <div class="card-top">
+        <span class="num">${String(a.n).padStart(2,"0")}</span>
+        <div class="id">
+          <div class="handle">@${esc(a.handle)}</div>
+          <div class="dname">${esc(a.display)}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm copy-h" type="button" data-copy="@${esc(a.handle)}">Copiar</button>
+      </div>
+      <p class="bio">${esc(a.bio)}</p>
+      <div class="bio-meta">${a.bio.length}/150 caracteres${a.isMain?" · cuenta principal":""}</div>
+      <div class="sect">
+        <h4>Enfoque</h4>
+        <span class="tag">${esc(a.nicheLabel)}</span>
+        <p class="focus" style="margin-top:7px">${esc(a.focus)}</p>
+      </div>
+      <div class="sect">
+        <h4>Cuentas reales que encajan con este perfil (${a.follows.length})</h4>
+        <div class="chips">${a.follows.map(f=>`<span class="chip">${esc(f)}</span>`).join("")}</div>
+      </div>
+    </article>`).join("")}</div>`;
+
+  document.getElementById("tbody").innerHTML=accounts.map(a=>`
+    <tr><td class="h">@${esc(a.handle)}</td><td>${esc(a.display)}</td><td>${esc(a.bio)}</td><td>${esc(a.nicheLabel)}</td></tr>`).join("");
+
+  document.getElementById("tbl-block").hidden=false;
+  document.getElementById("exports").hidden=false;
+  document.getElementById("count-label").textContent=`${accounts.length} ${accounts.length===1?"cuenta":"cuentas"} · una sola persona`;
+  out.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",()=>copy(b.dataset.copy,"Username copiado")));
+}
+
+function renderNotes(lang){
+  document.getElementById("notes").innerHTML=NOTES.map(n=>
+    `<div class="rule"></div><h3>${esc(n.h[lang])}</h3><p>${esc(n.p[lang])}</p>`).join("");
+}
+
+/* ============================ export ============================ */
+
+function toMarkdown(accounts,cfg){
+  const L=cfg.lang==="es";
+  let m=`# ${cfg.name} — ${accounts.length} ${L?"cuentas personales":"personal accounts"}\n\n`;
+  m+=L?"> Todas las cuentas pertenecen a la misma persona. Cada una tiene su propio tema; ninguna finge ser otra persona.\n\n"
+      :"> All accounts belong to the same person. Each has its own focus; none pretends to be someone else.\n\n";
+
+  accounts.forEach(a=>{
+    m+=`### ${L?"Cuenta":"Account"} ${String(a.n).padStart(2,"0")}\n`;
+    m+=`- Username: @${a.handle}\n`;
+    m+=`- ${L?"Nombre visible":"Display name"}: ${a.display}\n`;
+    m+=`- Bio: ${a.bio}\n`;
+    m+=`- ${L?"Enfoque / personalidad":"Focus / personality"}: ${a.focus}\n`;
+    m+=`- ${L?"Cuentas sugeridas para seguir":"Suggested accounts to follow"}:\n`;
+    a.follows.forEach((f,i)=>{m+=`  ${i+1}. ${f}\n`});
+    m+="\n";
+  });
+
+  m+=`## ${L?"Tabla resumen":"Summary table"}\n\n`;
+  m+=`| Username | ${L?"Nombre visible":"Display name"} | Bio | ${L?"Enfoque":"Focus"} |\n|---|---|---|---|\n`;
+  accounts.forEach(a=>{m+=`| @${a.handle} | ${a.display} | ${a.bio.replace(/\|/g,"\\|")} | ${a.nicheLabel} |\n`});
+
+  m+=`\n## ${L?"Gestión natural de varias cuentas personales":"Managing multiple personal accounts naturally"}\n\n`;
+  NOTES.forEach(n=>{m+=`**${n.h[cfg.lang]}** — ${n.p[cfg.lang]}\n\n`});
+  return m;
+}
+
+function copy(text,msg){
+  const done=()=>toast(msg||"Copiado");
+  if(navigator.clipboard?.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallback(text,done))}
+  else fallback(text,done);
+}
+function fallback(text,done){
+  const t=document.createElement("textarea");
+  t.value=text; t.style.position="fixed"; t.style.opacity="0";
+  document.body.appendChild(t); t.select();
+  try{document.execCommand("copy");done()}catch(e){toast("No se pudo copiar")}
+  t.remove();
+}
+let toastTimer;
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.classList.add("on");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("on"),1900);
+}
+
+/* ============================ wiring ============================ */
+
+const $=id=>document.getElementById(id);
+
+$("niches").innerHTML=Object.entries(NICHES).map(([k,v])=>
+  `<label class="check"><input type="checkbox" value="${k}"><span>${esc(v.label)}</span></label>`).join("");
+
+function readCfg(){
+  return {
+    name:$("name").value.trim(),
+    count:Math.max(1,Math.min(12,parseInt($("count").value,10)||1)),
+    lang:$("lang").value,
+    city:$("city").value.trim(),
+    tone:$("tone").value,
+    emoji:$("emoji").checked,
+    linked:$("linked").checked,
+    niches:[...$("niches").querySelectorAll("input:checked")].map(i=>i.value)
+  };
+}
+
+function run(newSeed){
+  const cfg=readCfg();
+  if(!cfg.name){$("err").classList.add("on");$("name").focus();return}
+  $("err").classList.remove("on");
+  const seed=newSeed ?? hash(cfg.name+cfg.count+cfg.lang+cfg.tone+cfg.city+cfg.niches.join(""));
+  const accounts=generate(cfg,seed);
+  CURRENT={accounts,cfg,seed};
+  render(accounts,cfg);
+  renderNotes(cfg.lang);
+}
+
+$("form").addEventListener("submit",e=>{e.preventDefault();run()});
+$("btn-reshuffle").addEventListener("click",()=>run(Math.floor(Math.random()*1e9)));
+$("btn-reset").addEventListener("click",()=>{
+  $("form").reset();
+  $("niches").querySelectorAll("input").forEach(i=>i.checked=false);
+  $("linked").checked=true;
+  CURRENT=null;
+  $("out").innerHTML='<div class="empty"><strong>Aún no hay nada generado</strong>Rellena tu nombre base a la izquierda y pulsa <em>Generar perfiles</em>.</div>';
+  $("tbl-block").hidden=true; $("exports").hidden=true; $("count-label").textContent="";
+  renderNotes("es");
+});
+
+$("cp-md").addEventListener("click",()=>{if(CURRENT)copy(toMarkdown(CURRENT.accounts,CURRENT.cfg),"Markdown copiado")});
+$("cp-json").addEventListener("click",()=>{if(CURRENT)copy(JSON.stringify(CURRENT.accounts,null,2),"JSON copiado")});
+$("dl-md").addEventListener("click",()=>{
+  if(!CURRENT)return;
+  const blob=new Blob([toMarkdown(CURRENT.accounts,CURRENT.cfg)],{type:"text/markdown;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=`perfiles-${slug(CURRENT.cfg.name)||"cuentas"}.md`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast("Descargado");
+});
+
+$("lang").addEventListener("change",()=>{renderNotes($("lang").value); if(CURRENT) run(CURRENT.seed)});
+
+$("theme").addEventListener("click",()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const sysDark=window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const now=cur || (sysDark?"dark":"light");
+  document.documentElement.setAttribute("data-theme", now==="dark"?"light":"dark");
+});
+
+renderNotes("es");
+</script>
+</body>
+</html>
