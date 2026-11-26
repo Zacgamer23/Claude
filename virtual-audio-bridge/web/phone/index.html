@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Virtual Audio Bridge</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Virtual Audio Bridge</h1>
+    <p class="sub">Audio del PC ⇄ tus auriculares Bluetooth</p>
+  </header>
+
+  <section class="card" id="status-card">
+    <div class="row"><span>PC (señalización)</span><b id="st-ws" class="pill">—</b></div>
+    <div class="row"><span>Audio (WebRTC)</span><b id="st-rtc" class="pill">—</b></div>
+    <div class="row"><span>Entrada de audio</span><b id="st-input" class="pill">—</b></div>
+    <div class="row"><span>Pantalla</span><b id="st-vis" class="pill">—</b></div>
+  </section>
+
+  <section class="card" id="error-card" hidden>
+    <h2>Problema</h2>
+    <p id="error-text"></p>
+  </section>
+
+  <section class="card" id="setup-card">
+    <h2>Modo</h2>
+    <label class="opt"><input type="radio" name="mode" value="call" checked>
+      <span><b>Llamada</b>: micrófono de los auriculares + audio del PC a la vez.
+      <small>Bluetooth usa el perfil de llamada: el audio es mono y de calidad de llamada.</small></span></label>
+    <label class="opt"><input type="radio" name="mode" value="listen">
+      <span><b>Solo escucha</b>: audio estéreo de mayor calidad, sin micrófono.</span></label>
+    <details>
+      <summary>Opciones avanzadas</summary>
+      <label class="opt"><input type="checkbox" id="opt-voice">
+        <span>Procesado de voz del navegador (cancelación de eco, supresión de ruido, ganancia automática).
+        <small>Desactivado por defecto: con auriculares no hace falta y añade latencia.</small></span></label>
+      <label class="opt"><span>Buffer de recepción objetivo del navegador (ms)</span>
+        <input type="number" id="opt-jb" min="0" max="500" step="10" value="0"></label>
+    </details>
+    <div id="confirm-box" hidden>
+      <p class="warn" id="confirm-text"></p>
+      <label class="opt"><input type="checkbox" id="confirm-route">
+        <span>He comprobado en el <b>Centro de control</b> (icono de AirPlay/salida de audio) que el iPhone está usando mis auriculares Bluetooth.</span></label>
+    </div>
+    <div id="input-select-box" hidden>
+      <label class="opt"><span>Micrófono</span><select id="input-select"></select></label>
+    </div>
+    <div class="buttons">
+      <button id="btn-start" class="primary">Iniciar puente</button>
+      <button id="btn-stop" hidden>Detener</button>
+      <button id="btn-reconnect" hidden>Reconectar</button>
+    </div>
+    <p class="hint">Antes de iniciar, conecta tus auriculares Bluetooth al iPhone como siempre. Mantén esta página abierta y en primer plano; la pantalla se quedará encendida.</p>
+  </section>
+
+  <section class="card">
+    <h2>Medidas</h2>
+    <div class="grid">
+      <div><span>Ida y vuelta de red</span><b id="m-rtt">—</b></div>
+      <div><span>Buffer del navegador</span><b id="m-jb">—</b></div>
+      <div><span>Pérdidas recibidas</span><b id="m-loss">—</b></div>
+      <div><span>Audio ocultado</span><b id="m-conceal">—</b></div>
+      <div><span>Buffer del micrófono (PC)</span><b id="m-pcbuf">—</b></div>
+      <div><span>Cortes del micrófono (PC)</span><b id="m-pcund">—</b></div>
+      <div><span>Recibido</span><b id="m-rx">—</b></div>
+      <div><span>Enviado</span><b id="m-tx">—</b></div>
+    </div>
+    <p class="hint">Estas medidas son reales: salen de <code>getStats()</code> del navegador y del motor del PC. No incluyen la latencia del Bluetooth, que el navegador no puede medir.</p>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Certificado de seguridad (recomendado en iPhone)</summary>
+      <p>La conexión usa HTTPS con un certificado creado por tu PC. Para que Safari no muestre avisos:</p>
+      <ol>
+        <li><a href="/ca.mobileconfig">Descarga el perfil del certificado</a> y toca <b>Permitir</b>.</li>
+        <li>Ajustes → <b>Perfil descargado</b> → Instalar.</li>
+        <li>Ajustes → General → Información → <b>Ajustes de confianza de certificados</b> → activa «Virtual Audio Bridge Local CA».</li>
+        <li>Comprueba que la huella coincide con la que muestra el PC:</li>
+      </ol>
+      <p class="mono" id="ca-fp">(se muestra al conectar)</p>
+      <p class="hint">Es una configuración del sistema, no una app. Puedes quitarla en Ajustes → General → VPN y gestión de dispositivos.</p>
+    </details>
+  </section>
+
+  <audio id="remote" autoplay playsinline></audio>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

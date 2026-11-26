@@ -1,0 +1,40 @@
+:root {
+  --bg: #f4f5f7; --card: #ffffff; --fg: #15171a; --muted: #5d6470; --line: #e2e5ea;
+  --accent: #1f6feb; --ok: #1a7f37; --warn: #9a6700; --bad: #cf222e;
+  --pill-bg: #eef1f5;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0d1117; --card: #161b22; --fg: #e6edf3; --muted: #8b949e; --line: #30363d;
+    --accent: #4493f8; --ok: #3fb950; --warn: #d29922; --bad: #f85149; --pill-bg: #21262d; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 560px; margin: 0 auto; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
+header h1 { font-size: 1.4rem; margin: 8px 0 0; }
+.sub { color: var(--muted); margin: 2px 0 12px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin: 12px 0; }
+.card h2 { font-size: 1.05rem; margin: 0 0 10px; }
+.row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; gap: 12px; }
+.row + .row { border-top: 1px solid var(--line); }
+.pill { background: var(--pill-bg); border-radius: 999px; padding: 2px 10px; font-size: .85rem; font-weight: 600; text-align: right; }
+.pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); } .pill.bad { color: var(--bad); }
+.opt { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; }
+.opt small { display: block; color: var(--muted); }
+.opt input[type=number], .opt select { margin-left: auto; font-size: 1rem; padding: 4px 6px; max-width: 60%; }
+.buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+button { font-size: 1rem; padding: 12px 18px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--pill-bg); color: var(--fg); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); flex: 1; }
+button:disabled { opacity: .5; }
+.hint { color: var(--muted); font-size: .88rem; }
+.warn { color: var(--warn); }
+#error-card { border-color: var(--bad); }
+#error-card h2 { color: var(--bad); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid div { display: flex; flex-direction: column; }
+.grid span { color: var(--muted); font-size: .8rem; }
+.grid b { font-variant-numeric: tabular-nums; }
+.mono { font-family: ui-monospace, Menlo, monospace; font-size: .75rem; word-break: break-all; }
+details summary { cursor: pointer; font-weight: 600; }
+a { color: var(--accent); }
