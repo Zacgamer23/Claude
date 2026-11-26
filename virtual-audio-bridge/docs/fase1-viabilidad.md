@@ -153,12 +153,36 @@ Eso choca con "no depender de servicios de pago". **Lo tienes que decidir tú (�
 - Permisos necesarios: solo *Micrófono* para el origen `https://<IP-del-PC>:<puerto>`. No se piden cámara,
   ubicación, Bluetooth ni notificaciones.
 
-### 2.3 iOS (Safari y cualquier navegador de iOS, todos usan WebKit)
+### 2.3 iOS — **plataforma real del usuario** (iPhone + Nothing Ear (3)), actualizado 2026-11-26
 
-- `getUserMedia` funciona en HTTPS. Con categoría *playAndRecord*, iOS enruta a HFP si hay auriculares
-  Bluetooth. **[A-PROBAR]**
-- Safari **pausa o silencia el micrófono en segundo plano o con la pantalla bloqueada** (WebKit bugs 226620 y
-  similares). **iOS: soporte parcial, solo en primer plano.**
+El usuario no tiene Android; usa iPhone. En iOS **todos los navegadores (Safari, Chrome, Edge…) usan WebKit**, así
+que las restricciones son las mismas en cualquiera de ellos. Una página web sigue siendo viable (no hay que
+instalar nada), pero con estas restricciones:
+
+- `getUserMedia` funciona en HTTPS. Al capturar el micrófono, iOS pasa a la sesión de audio *playAndRecord*, y con
+  auriculares Bluetooth clásicos la ruta pasa a **HFP**. La reproducción también baja a calidad de llamada; el
+  iPhone no usa LE Audio con auriculares de terceros. **[A-PROBAR con los Nothing Ear (3)]**
+- **Selección del micrófono:** iOS decide la ruta; la página no puede elegirla de forma fiable. Hay informes
+  (WebKit bug 174833, de iOS 11 a iOS 13, y un foro de octubre de 2025) de que `enumerateDevices()` solo lista
+  "iPhone Microphone", aunque haya auriculares conectados. Un cambio de WebKit de diciembre de 2024 (bug 284617)
+  deja de forzar un micrófono preferido para no interferir con el enrutado automático.
+  → Es posible que la página **no pueda verificar por sí sola** que el micrófono activo es el de los auriculares.
+  Para no sustituirlo en silencio: (a) se usa la etiqueta y el `deviceId` de la pista si iOS los expone, y
+  (b) si no, la página **se detiene y pide confirmación explícita** de la ruta (Centro de control → salida de
+  audio) antes de transmitir. **[A-PROBAR]**
+- **Salida:** hay informes de que iOS manda el audio al altavoz del iPhone al activar el micrófono.
+  `setSinkId` no está disponible en Safari iOS. Con auriculares Bluetooth conectados, lo esperado es la ruta HFP.
+  **[A-PROBAR]**
+- **Segundo plano / pantalla bloqueada:** hay varios informes (WebKit 226620, 241400; foros de Apple) de que iOS
+  **suspende WebRTC y el micrófono al bloquear la pantalla o al pasar Safari a segundo plano**. Otro informe dice
+  que una pestaña de Safari (no una web instalada en la pantalla de inicio) mantiene el micrófono. Las fuentes se
+  contradicen y ninguna es oficial. Hipótesis de trabajo: **hay que mantener la página abierta en primer plano con
+  la pantalla encendida** (Screen Wake Lock está disponible en Safari 16.4+). **[A-PROBAR en tu versión de iOS]**
+- Si la PoC confirma que iOS corta el audio con la pantalla bloqueada, ese requisito **no se puede cumplir con una
+  página web en iPhone**. La única alternativa sería una app nativa con modo de audio en segundo plano, que
+  excluiste, así que no se hará sin tu permiso.
+- Hay informes de fallos de `getUserMedia` en algunas versiones de iOS 26 (bug 319706; un fallo de la beta de
+  iOS 26.1 se corrigió en la Beta 2). Conviene anotar la versión exacta de iOS en cada prueba.
 
 ### 2.4 Navegadores recomendados
 
